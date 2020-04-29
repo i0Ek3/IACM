@@ -12,6 +12,7 @@ import (
     "encoding/hex"
     "math/rand"
     "strconv"
+    "sort"
     "math"
     "time"
     "fmt"
@@ -23,6 +24,8 @@ const (
     delegateNum     = 10    // delegate number
     alpha           = 0.8   // factor of auth   
     beta            = 0.2   // factor of vote
+    reward          = 0.05
+    punish          = -0.2
 )
 
 // the struct of common node
@@ -52,26 +55,40 @@ type Delegate struct {
     fmm         string
 }
 
+// simplize the struct, just use Node and D struct
+type D struct {
+    Node
+    Auth        int
+    d           int
+    Cl          int
+    Cv          float64
+    Con         int
+    isDelete    bool
+    isGood      bool
+    Address     string
+    fmm         string
+}
+
 // the struct of Block
 type Block struct {
     Height      int
     Timestamp   string
     Hash        string
     Prehash     string
-    Data        []byte
+    Data        string 
     Address     string
-    delegate    *Node
+    //delegate    *Node
 }
 
 var (
-    nodePool    = make([]Node, nodeNum)     // common node pool
-    candPool    = make([]Candidate, candidateNum)// candidate node pool
-    delePool    = make([]Delegate, delegateNum) // delegate node pool
+    nodePool    = make([]Node, nodeNum)  // common node pool
+    candPool    = make([]D, candidateNum)// candidate node pool
+    delePool    = make([]D, nodeNum) // delegate node pool
     
-    deletePool  = make([]Delegate, delegateNum) // state table: store cl=4's nodes
-    freezePool  = make([]Delegate, delegateNum) // state table: store cl=3's nodes
-    commonPool  = make([]Delegate, delegateNum) // state table: store cl=2's nodes
-    premiumPool = make([]Delegate, delegateNum) // state table: store cl=1's nodes
+    deletePool  = make([]D, delegateNum) // state table: store cl=4's nodes
+    freezePool  = make([]D, delegateNum) // state table: store cl=3's nodes
+    commonPool  = make([]D, delegateNum) // state table: store cl=2's nodes
+    premiumPool = make([]D, delegateNum) // state table: store cl=1's nodes
     
     round       = 0          // times of round 
     input       string       // the anwser to next loop
@@ -82,31 +99,52 @@ var (
     vote        int
 )
 
-// first block
-func geneBlock() Block {
-    gene := Block{0, time.Now().String(), "", "", []byte("I'm the first block"), "", nil}
+// first block: genesis block
+func genesisBlock() Block {
+    // Prehash have 64 bit, address have 8 bit
+    gene := Block{1, time.Now().String(), "", "0000000000000000000000000000000000000000000000000000000000000000", "I'm the genesis block", "000000000"}
     blockchain = append(blockchain, gene)
-    gene.Hash = string(calHash(gene))
+    //gene.Hash = string(gene.calHash())
+    gene.calHash()
     return gene
 }
 
-// delegate nodes consensus
+// the new version of generate the block
+func generateBlock(oldBlock Block, data string, addr string) Block {
+    newBlock := Block{}
+	newBlock.Height = oldBlock.Height + 1
+    newBlock.Timestamp = time.Now().String()//Format("2020-01-01 00:00:00")
+	newBlock.calHash()
+	newBlock.Prehash = oldBlock.Hash
+	newBlock.Data = data
+	newBlock.Address = addr
+	return newBlock
+}
+
 // generate the block
-func (node *Node) GenerateNewBlock(lastBlock Block, data []byte, addr string) Block {
+func (node *Node) GenerateNewBlock(lastBlock Block, data string, addr string) Block {
     time.Sleep(3 * time.Second) // for easy use, every 3sec generate a block
-    var newBlock = Block{lastBlock.Height+1, time.Now().String(), lastBlock.Hash, "", data, addr, nil}
-    newBlock.Hash = hex.EncodeToString(calHash(newBlock))
-    newBlock.delegate = node
+    //Block{lastBlock.Height+1, time.Now().String(), lastBlock.Hash, "", data, addr, nil}
+    newBlock := Block{}
+    newBlock.Height = lastBlock.Height + 1
+    newBlock.Timestamp = time.Now().String()
+    newBlock.Prehash = lastBlock.Hash 
+    newBlock.Data = data
+    newBlock.Address = addr
+    //newBlock.Hash = hex.EncodeToString(newBlock.calHash())
+    //newBlock.delegate = node
     return newBlock
 }
 
 // calculate the block hash
-func calHash(block Block) []byte {
-    hash := strconv.Itoa(block.Height) + block.Timestamp + block.Prehash + hex.EncodeToString(block.Data) + block.Address
-    h := sha256.New()
-    h.Write([]byte(hash))
-    hashed := h.Sum(nil)
-    return hashed
+func (block *Block) calHash()  {
+    hashstr := strconv.Itoa(block.Height) + block.Timestamp + block.Prehash + block.Data + block.Address
+    hash := sha256.Sum256([]byte(hashstr))
+	block.Hash = hex.EncodeToString(hash[:])
+    //h := sha256.New()
+    //h.Write(hash)
+    //hashed := h.Sum(nil)
+    //return hashed
 }
 
 // create nodes then initialize it
@@ -114,17 +152,18 @@ func CreateNode() {
     for i := 0; i < nodeNum; i++ {
         info := fmt.Sprintf("common node:") // node information
         id   := i       // node id number
-        vote := rand.Intn(nodeNum)       // the number of vote
-        //auth := 0       // authencation
-        //d    := 0       // support degree
-        //cl   := 0       // contribution level
-        //cv   := 0.0     // contribution value
-        //con  := 0       // the contious of generate block
-        //bad  := false   // bad node?
-        //good := false   // good node?
-        f      := "\n"    // format control
+        vote := rand.Intn(nodeNum)          // the number of vote
+        f    := "\n"    // format control
         nodePool[i] = Node{info, id, vote, f}
     }
+}
+
+// use lambda to sort nodes
+func sortNodes() {
+	sort.Slice(candPool, func(i, j int) bool {
+		return candPool[i].Votes > candPool[j].Votes
+	})
+	delePool = candPool[:delegateNum]
 }
 
 // select candidate from common node
@@ -148,15 +187,24 @@ func initCandidate() {
         info := fmt.Sprintf("candidate")
         id   := i
         vote := 0
+        f    := ""
         auth := 0
         d    := 0
-        f    := ""
-        fm   := "\n"
+        cl   := 0
+        cv   := 0.0
+        con  := 0
+        bad  := false
+        good := false
+        addr := ""
+        fmm  := "\n"
 
         // TODO: for information shows well, we can forbid the struct inheritance 
-        candPool = append(candPool, Candidate{Node{"candidate", i, 0, f}, 0, 0, fm})
-        candPool[i] = Candidate{Node{info, id, vote, f}, auth, d, fm}
-        fmt.Printf("initilizing... %v\n",  candPool[i])
+        candPool = append(candPool, D{Node{info, id, vote, f}, auth, d, cl, cv, con, bad, good, addr, fmm})
+        candPool[i] = D{Node{info, id, vote, f}, auth, d, cl, cv, con, bad, good, addr, fmm}
+        
+        // use key:value method of struct but shows error here
+        //candPool[i] = D{Node{Info:"candidate", Id:i, Votes:0}, Auth:0, d:0, fmm:"\n"}
+        fmt.Printf("initilizing...%v\n",  candPool[i])
     }
 }
 
@@ -184,7 +232,10 @@ func Vote() {
         // TODO: here should simulate voting dynamticly
         // reduce the votes of unauthenticated node
         if candPool[i].Auth == 1 {
-            vote = rand.Intn(nodeNum) 
+            vote = rand.Intn(nodeNum)
+            if vote <= 50 {
+                vote += 25
+            }
         } else {
             vote = rand.Intn(50) 
         }
@@ -192,11 +243,11 @@ func Vote() {
         //vote := rand.Intn(nodeNum * 10) // every node have 10 tickets
         // TODO: vote normalization
         //v := (int)(1 / (1 + math.Exp((float64)(vote))))
-        if vote >= 130 {
+        if vote >= 100 {
             vote -= 10
         } 
-        if vote <= 10 {
-            vote += 10
+        if vote <= 5 {
+            vote += 3
         }
         candPool[i].Votes = vote
         
@@ -222,7 +273,7 @@ func CalSD() {
 }
 
 // select delegate node from candidate
-func SelectDelegate() []Candidate {
+func SelectDelegate() []D {
     n := candPool
     for i := 0; i < len(n); i++ {
         // check node wheather isDelete from round 2
@@ -249,11 +300,10 @@ func InitialDelegate() {
         delePool[i].isDelete = false
         delePool[i].isGood   = false
         
-        // FIXME: cannot read the votes from delegate node
         if candPool[i].Auth == 1 {
-            fmt.Printf("candidate %d(delegate %d) have authencated, and cl = %d cv = %f con = %d.\n", nodes[i].Id, i, delePool[i].Cl, delePool[i].Cv, delePool[i].Con)
+            fmt.Printf("candidate %d(delegate %d) have authencated, and cl = %d cv = %f con = %d\n", nodes[i].Id, i, delePool[i].Cl, delePool[i].Cv, delePool[i].Con)
         } else {
-            fmt.Printf("candidate %d(delegate %d) have unauthencated, and cl = %d cv = %f con = %d.\n", nodes[i].Id, i, delePool[i].Cl, delePool[i].Cv, delePool[i].Con)
+            fmt.Printf("candidate %d(delegate %d) have unauthencated, and cl = %d cv = %f con = %d\n", nodes[i].Id, i, delePool[i].Cl, delePool[i].Cv, delePool[i].Con)
         }
     }
 }
@@ -269,7 +319,7 @@ func waitingTime() {
 
 // validate the block generated by delegate
 func isBlockValid(newBlock, oldBlock Block) bool{
-    //fmt.Println("\n------------------Validating the block...--------------------\n")
+    fmt.Println("\n------------------Validating the block...--------------------\n")
     waitingTime()
     
     // TODO: validate delegateNum delegate nodes
@@ -277,15 +327,20 @@ func isBlockValid(newBlock, oldBlock Block) bool{
         //
     }
     
-    //if oldBlock.Height + 1 != newBlock.Height{
-   	//    //fmt.Println("\nValidation failed! Wrong Height!\n")
-   	//    return false
-    //}
-    //if newBlock.Prehash != oldBlock.Hash{
-   	//    //fmt.Println("\nValidation failed! Wrong Prehash!\n")
-   	//    return false
-    //}
-    //fmt.Println("\n-------------------Validation Successful!---------------------\n")
+    // validate height and prehash
+    if oldBlock.Height + 1 != newBlock.Height {
+   	    fmt.Println("\nValidation failed! Wrong Height!\n")
+   	    return false
+    } else {
+        fmt.Println("\nBlock Height validating successful!\n")
+    }
+    if newBlock.Prehash != oldBlock.Hash {
+   	    fmt.Println("\nValidation failed! Wrong Prehash!")
+   	    return false
+    } else {
+        fmt.Println("Block Prehash validating successful!\n")
+    }
+    fmt.Println("\n-------------------Validation Successful!---------------------\n")
     return true
 }
 
@@ -309,7 +364,7 @@ func Shuffle() {
 	delePool[idx2] = tmp
 }
 
-// process
+// process to initializing until before consensus
 func Process() {
     // statistic round number
     round++
@@ -330,7 +385,7 @@ func Process() {
 
     // initial candidate node list
     fmt.Print("\n----------Initializing candidate nodes...----------\n")
-    fmt.Println("\t\tinfo id votes auth d \n")
+    fmt.Println("\tinfo id votes auth d cl cv con bad good \n")
     waitingTime()
     initCandidate()
     //fmt.Println(candPool)
@@ -353,7 +408,7 @@ func Process() {
     // selection delegate from candidate
     nodes := SelectDelegate()
     fmt.Print("\n-----------------Select delegate nodes-----------------\n")
-    fmt.Println("\t\tinfo id votes auth d \n")
+    fmt.Println("\tinfo id votes auth d cl cv con bad good \n")
     waitingTime()
     fmt.Println(nodes)
 
@@ -361,14 +416,28 @@ func Process() {
     fmt.Print("\n---------------Initializing consensus...---------------\n")
     waitingTime()
     InitialDelegate()
+    
+    // old generate block version
+    //waitingTime()
+    //nodes := SelectDelegate()
+    //for i := 0; i < len(nodes); i++ {
+    //    if nodes[i].Auth == 1 {
+    //        fmt.Printf("Block generated by candidate %d(delegate %d), which have authencated!\n", nodes[i].Id, i)
+    //    } else {
+    //        fmt.Printf("Block generated by candidate %d(delegate %d), which have unauthencated!\n", nodes[i].Id, i)
+    //    }
+}
 
+// generate the block recurrently
+func genLoop() {
     // create genesis block
-    first := geneBlock() 
-    lastBlock := first
+    //first := genesisBlock() 
+    //lastBlock := first
 
     // generate the block
-    fmt.Print("\n-------------------Generating block...--------------------\n")
+    fmt.Print("\n------------------------Generating block...-------------------------\n")
     waitingTime()
+    nodes := SelectDelegate()
     for i := 0; i < len(nodes); i++ {
         if nodes[i].Auth == 1 {
             // TODO: think add block address with hash code
@@ -379,16 +448,17 @@ func Process() {
 
         // statistic continuity
         delePool[i].Con++
-        lastBlock = nodes[i].GenerateNewBlock(lastBlock, []byte(fmt.Sprintf("new block [%d]", i)), "")
+        //lastBlock = generateBlock(blockchain[i], fmt.Sprintf("block content"), "")
     }
 
     // validate the block then add it into the blockchain
     // FIXME: Is this one have necessity? 
-    //blockHeight := len(blockchain)
-    //oldBlock := blockchain[blockHeight-1]
-    //if isBlockValid(lastBlock, oldBlock) {
-    //    blockchain = append(blockchain, lastBlock)
-    //}
+    blockHeight := len(blockchain)
+    oldBlock := blockchain[blockHeight-1]
+    newBlock := generateBlock(oldBlock, "newer", "")
+    if isBlockValid(newBlock, oldBlock) {
+        blockchain = append(blockchain, newBlock)
+    }
 }
 
 // update delegate's cv
@@ -396,23 +466,22 @@ func UpdateCv() {
     waitingTime()
     
     // the arguments of calculate the contribution value
-    reward      := 0.05
-    punish      := -0.2
     lambda1     := 0.05
     lambda2     := 0.25
     sum1        := 0.0
     sum2        := 0.0
 
-    // FIXME: something wrong here
-    newBlock := geneBlock()
     blockHeight := len(blockchain)
     oldBlock := blockchain[blockHeight-1]
+    newBlock := generateBlock(oldBlock, "newer", "")
     
     for i := 0; i < delegateNum; i++ {
         delta := -(float64)(delePool[i].Con)
         // FIXME: validation always be the same 
-        if isBlockValid(newBlock, oldBlock) { 
-            delePool[i].Cv += 0.05 // reward 0.05 cv
+        //if isBlockValid(newBlock, oldBlock) { 
+        if oldBlock.Height+1 == newBlock.Height || newBlock.Prehash == oldBlock.Hash { 
+            blockchain = append(blockchain, newBlock)
+            delePool[i].Cv += reward // reward cv
             rewardTimes++
             sum1 += rewardTimes * reward
             if delePool[i].Con == 0 {
@@ -425,7 +494,7 @@ func UpdateCv() {
                 }
             }
         } else {
-            delePool[i].Cv -= 0.2 // punish cv
+            delePool[i].Cv += punish // punish cv
             punishTimes++
             sum2 += punishTimes * punish
             if delePool[i].Con == 0 {
@@ -443,9 +512,9 @@ func UpdateCv() {
 
 // update delegate's cl
 func UpdateCl() {
-    //fmt.Print("\n-------------------Updating contibution level...--------------------\n")
     waitingTime()
 
+    // set cl = 2||3 if the target out of contribution value range 
     for i := 0; i < delegateNum; i++ {
         if delePool[i].Cv >= 0.75 && delePool[i].Cv <= 1 {
             delePool[i].Cl = 1
@@ -453,8 +522,15 @@ func UpdateCl() {
             delePool[i].Cl = 2
         } else if delePool[i].Cv >= 0.25 && delePool[i].Cv < 0.5 {
             delePool[i].Cl = 3
-        } else {
+        } else if delePool[i].Cv >= 0 && delePool[i].Cv < 0.25 {
             delePool[i].Cl = 4
+        } else if delePool[i].Cv > 1 { // out of range, set to 2
+            // FIXME: the contribution value out of range     
+            delePool[i].Cl = 2
+        } else if delePool[i].Cv < 0 { // out of range, set to 3
+            delePool[i].Cl = 3
+        } else {
+            continue
         }
     }
 }
@@ -502,8 +578,9 @@ func Feedback() {
         }
     }
     fmt.Print("\n------------------Reward and punish have done!--------------------\n")
-    fmt.Print("\nGood node we reward it 0.05 contribution value every consensus round!\n")
-    fmt.Print("\nBad node we punish it 0.2 contribution value every consensus round!\n")
+    fmt.Printf("\nGood node we reward it %f contribution value every consensus round!\n", reward)
+    fmt.Printf("\nBad node we punish it %f contribution value every consensus round!\n", punish)
+    fmt.Print("\n-------------------------------------------------------------------\n")
 }
 
 // check nodes' attribution in a new round
@@ -514,6 +591,7 @@ func CheckAttr() {
     // TODO: think about develop dcml algorithm from here or start the new selection
     // if one node's cv = 4, we don't use it again, or it's cv = 3, we will freezen it one round
     // and others, back to work
+    
     for i := 0; i < nodeNum; i++ {
         if delePool[i].isDelete && delePool[i].Cl == 4 {
             deletePool = append(deletePool, delePool[i])
@@ -531,27 +609,114 @@ func CheckAttr() {
     fmt.Print("-------------------Nodes' attribution checked!--------------------\n")
 }
 
+// contribution machnism
+func ContributionMechanism() {
+    // FIXME: after generate 100 blocks, the delegate nodes' cv and cl only update once, but we should update them every 10 round
+    UpdateCv()
+    UpdateCl()
+    
+    fmt.Print("\n-------------Updating contibution value and contribution level...--------------\n")
+    ShowCvCl()
+    fmt.Print("\n------------Contibution value and contribution level updated!------------\n")
+    
+    Feedback()
+    Shuffle()
+}
+
+// get votes notify
+func getNotify() {
+    for i := 0; i < nodeNum; i++ {
+        if delePool[i].isDelete {
+            fmt.Println("\nThis node alread deleted!\n")
+        } else if delePool[i].isGood {
+            fmt.Println("\nThis node was good node, you can vote it more!\n")
+        } else {
+            fmt.Println("\nVote it by your heart!\n")
+        }
+    }
+}
+
+// candidate monitor
+func CandidateMonitor() {
+
+}
+
+// abnormal detection
+func AbnormalDetection() {
+
+}
+
+// alternative strategy
+func SelectAlternativeStrategy() {
+
+}
+
+// alternate dynamicly
+func DynamicAlternate() {
+
+}
+
+// DCML algorithm
+func DCML() {
+    //CandidateMonitor() // dynamic alternataion algo step
+    //AbnormalDetection()
+    //SelectAlternativeStrategy() // includes three alternative stragtegies
+    //DynamicAlternate() 
+    //CheckAttr()
+}
+
+// main function
 func main() {
+LOOP:
+    Process()
+    
     // TODO: add interactive interface
     //fmt.Println("Please input node number always be odd:")
     //fmt.Scanln(&nodeNum)
     //delegateNum = (int)(nodeNum / 3)
     //fmt.Printf("This round we have %d nodes then select %d nodes be a delegate node.", nodeNum, delegateNum)
-LOOP:
-    // TODO: add more loop to generate the block instead of one round only
-    Process()
-    fmt.Print("\n-------------Updating contibution value and contribution level...--------------\n")
-    UpdateCv()
-    UpdateCl()
-    ShowCvCl()
-    fmt.Print("\n------------Contibution value and contribution level updated!------------\n")
-    Feedback()
-    Shuffle()
-    //CheckAttr()
 
-    //NextLoop()
-    fmt.Println("\n----------------------Next loop?-----------------------\n")
+    gene := Block{1, time.Now().Format("2020-01-01 00:00:00"), "", "0000000000000000000000000000000000000000000000000000000000000000", "I'm the genesis block", "000000000"}
+    gene.calHash()
+	blockchain = append(blockchain, gene)
+    //genesisBlock()
+    
+    fmt.Print("\n---------------Generating the genesis block...-----------------\n")
+    fmt.Println("\n")
+    fmt.Println(blockchain[0])
+    
+    // run 30 round for consensus
+    // we use 20 blocks with 2 rounds to simulate dpos consensus
+    for k := 0; k < delegateNum * 2 - 1; k++ {
+        delePool[k].Con++      
+        round++
+        waitingTime()
+        fmt.Print("\n---------------------Generating block...----------------------\n")
+        
+        newBlock := generateBlock(blockchain[k], "block content", delePool[k].Address)
+        //newBlock := generateBlock(gene, "block content", gene.Address)
+        //if newBlock.Height == blockchain[0].Height+1 || newBlock.Prehash == blockchain[0].Hash {
+        blockchain = append(blockchain, newBlock)
+        //}
+        fmt.Println("\n")
+        fmt.Println(blockchain[k+1])
+        
+        // FIXME: we want to shows cv and cl information every 10 blocks after generated, but it's so wierd that follows code just shown us chaos here.
+        // we cannot validate the delegate's con right now after it generated one block, but we can validate it's valid.
+        // so every 10 round we just output the information of cv and cl, 
+        // while all the process done, we update cv and cl then show again
+        if round % 10 == 0 {
+            // FIXME: chaos here
+            ContributionMechanism()
+        } 
+    }
+    //ContributionMechanism()
+    //DCML()
+
+    // run the next loop
+    fmt.Println("\n---------------------------Next loop?----------------------------\n")
     fmt.Println("Current consensus round have done, would you like to start next round? y to contine, n to stop:")
+    
     fmt.Scanln(&input)
     if input == "y" || input == "Y" {
         goto LOOP
