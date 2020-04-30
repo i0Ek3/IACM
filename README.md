@@ -20,19 +20,21 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## Update Log
 
+- v0430: Messed up, more bugs on the way. >_<
 - v0429: Fix and make some bugs.
 - v0428: Modelize the code, fix some issues but not all.
 - v0425: Finished basic function of IDTM.
 
 ## TODO
 
-- Add consensus delay
-- Statistic and validate round times 
-- Add P2P function
-- Add interactive interface
-- Fix same Cv/Cl value of every delegate node
-- Implement DCML algorithm
-- ...
+[x] Fix same block issue after 3 block generated
+[] Fix same Cv/Cl value of every delegate node
+[] Add consensus delay
+[] Statistic and validate round times 
+[] Add P2P function
+[] Add interactive interface
+[] Implement DCML algorithm
+
 
 ## Credit 
 
