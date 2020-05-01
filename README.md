@@ -27,13 +27,13 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## TODO
 
-[x] Fix same block issue after 3 block generated
-[] Fix same Cv/Cl value of every delegate node
-[] Add consensus delay
-[] Statistic and validate round times 
-[] Add P2P function
-[] Add interactive interface
-[] Implement DCML algorithm
+- [x] Fix same block issue after 3 block generated
+- [] Fix same Cv/Cl value of every delegate node
+- [] Add consensus delay
+- [] Statistic and validate round times 
+- [] Add P2P function
+- [] Add interactive interface
+- [] Implement DCML algorithm
 
 
 ## Credit 

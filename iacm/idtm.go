@@ -106,7 +106,7 @@ var (
 // first block: genesis block
 func genesisBlock() Block {
     // Prehash have 64 bit, address have 8 bit
-    gene := Block{time.Now().String(), "0000000000000000000000000000000000000000000000000000000000000000", "", "I'm the genesis block", 1, "000000"}
+    gene := Block{time.Now().String(), "0000000000000000000000000000000000000000000000000000000000000000", "", "I'm the genesis block", 1, "0x0000"}
     blockchain = append(blockchain, gene)
     //gene.Hash = string(gene.calHash())
     gene.calHash()
@@ -153,12 +153,17 @@ func (block *Block) calHash()  {
 
 // create nodes then initialize it
 func CreateNode() {
+    fmt.Print("\n------------------Initializing common nodes------------------\n")
+    fmt.Println("\t\t\tinfo id votes \n")
+    waitingTime()
     for i := 0; i < nodeNum; i++ {
         info := fmt.Sprintf("common node:") // node information
         id   := i       // node id number
         vote := rand.Intn(nodeNum)          // the number of vote
-        f    := "\n"    // format control
+        f    := ""    // format control
         nodePool[i] = Node{info, id, vote, f}
+        fmt.Println("initializing...", nodePool[i])
+        //fmt.Println("\n")
     }
 }
 
@@ -179,15 +184,20 @@ func SelectCandidate() []Node {
             }
         }
     }
+    for i := 0; i < candidateNum; i++ {
+        fmt.Println(nodePool[i])
+    }
 
     // candPool store top 30 common nodes
     //candPool = append(candPool, nodePool[:candidateNum])
+    //fmt.Println(nodePool[:candidateNum])
     return nodePool[:candidateNum]
 }
 
 // initial candidate node
 func InitCandidate() {
     for i := 0; i < candidateNum; i++ {
+        //fmt.Printf("candidate %d ", nodes[i].Id)
         info := fmt.Sprintf("candidate")
         id   := i
         vote := 0
@@ -201,7 +211,7 @@ func InitCandidate() {
         bad  := false
         good := false
         addr := ""
-        fmm  := "\n"
+        fmm  := ""
 
         // TODO: for information shows well, we can forbid the struct inheritance 
         candPool = append(candPool, D{Node{info, id, vote, f}, auth, d, cl, cv, con, un, bad, good, addr, fmm})
@@ -209,7 +219,7 @@ func InitCandidate() {
         
         // use key:value method of struct but shows error here
         //candPool[i] = D{Node{Info:"candidate", Id:i, Votes:0}, Auth:0, d:0, fmm:"\n"}
-        fmt.Printf("initilizing...%v\n",  candPool[i])
+        fmt.Print("\ninitilizing...",  candPool[i])
     }
 }
 
@@ -291,13 +301,18 @@ func SelectDelegate() []D {
             }
         }
     }
+
+    for i := 0; i < delegateNum; i++ {
+        fmt.Println(candPool[i])
+    }
+
     //delePool = append(delePool, candPool)
     return n[:delegateNum]
 }
 
 // initialize consensus: initialize delegate node
 func InitialDelegate() {
-    nodes := SelectDelegate()
+    //nodes := SelectDelegate()
     for i := 0; i < delegateNum; i++ {
         delePool[i].Cl       = 2
         delePool[i].Cv       = 0.05
@@ -314,7 +329,7 @@ func InitialDelegate() {
         }
         */
         
-        fmt.Printf("candidate %d ", nodes[i].Id)
+        fmt.Printf("candidate %d ", candPool[i].Id)
         // use struct to initial delegate
         info := fmt.Sprintf("delegate")
         id   := i
@@ -329,11 +344,11 @@ func InitialDelegate() {
         bad  := false
         good := false
         addr := "0x00" + strconv.Itoa(i+1)
-        fmm  := "\n"
+        fmm  := ""
 
         delePool = append(delePool, D{Node{info, id, vote, f}, auth, d, cl, cv, con, un, bad, good, addr, fmm})
         delePool[i] = D{Node{info, id, vote, f}, auth, d, cl, cv, con, un, bad, good, addr, fmm}
-        fmt.Println("initialized to delegate:\n", delePool[i])
+        fmt.Println("initialized to delegate %d:", candPool[i], i)
     }
 }
 
@@ -400,17 +415,17 @@ func Process() {
     
     // create common nodes then print them information
     CreateNode()
-    fmt.Print("\n----------------Initializing nodes---------------\n")
-    fmt.Println("\t\tinfo id votes \n")
-    waitingTime()
-    fmt.Println(nodePool)
+    //fmt.Print("\n----------------Initializing nodes---------------\n")
+    //fmt.Println("\t\tinfo id votes \n")
+    //waitingTime()
+    //fmt.Println(nodePool)
    
     // select candidate from common node which have more votes
     fmt.Print("\n-------------Select candidate nodes...------------\n")
     fmt.Println("\t\tinfo id votes\n")
     waitingTime()
     SelectCandidate()
-    fmt.Print(nodePool[:candidateNum])
+    //fmt.Print(nodePool[:candidateNum])
 
     // initial candidate node list
     fmt.Print("\n----------Initializing candidate nodes...----------\n")
@@ -420,6 +435,7 @@ func Process() {
     //fmt.Println(candPool)
 
     // simulate the auth
+    fmt.Println("\n")
     fmt.Print("\n-------------------Authenticating-----------------\n")
     waitingTime()
     Auth()
@@ -435,11 +451,13 @@ func Process() {
     CalSD()
 
     // selection delegate from candidate
-    nodes := SelectDelegate()
+    //nodes := SelectDelegate()
     fmt.Print("\n-----------------Select delegate nodes-----------------\n")
     fmt.Println("\tinfo id votes auth d cl cv con bad good \n")
     waitingTime()
-    fmt.Println(nodes)
+    SelectDelegate()
+    fmt.Println("\n")
+    //fmt.Println(nodes)
 
     // initial consensus
     fmt.Print("\n---------------Initializing consensus...---------------\n")
@@ -508,7 +526,6 @@ func Upcv(delePoolCon int) {
 
 // update delegate's cv
 // yeah, we messed up this one!
-/*
 func UpdateCv(con, unvalid int) { 
     // the arguments of calculate the contribution value
     sum1        := 0.0
@@ -531,7 +548,7 @@ func UpdateCv(con, unvalid int) {
         if oldBlock.Height+1 == newBlock.Height || newBlock.Prehash == oldBlock.Hash { 
             delePool[i].Con++
             if con > 0 {
-                rewardTimes += con
+                //rewardTimes += con
             } else if con == 0 {
                 punishTimes++
             } else {
@@ -577,7 +594,6 @@ func UpdateCv(con, unvalid int) {
         }
     }
 }
-*/
 
 // update delegate's cl
 func UpdateCl() {
@@ -606,14 +622,15 @@ func UpdateCl() {
 
 // display the information of delegates' cv and cl
 func ShowCvCl(round int) {
-    nodes := SelectDelegate()
+    //nodes := SelectDelegate()
 
     // FIXME: every delegate after generate block, we update it's conrespoding cl and cv, one by one instead of update all
     for i := 0; i < round; i++ {
+        //fmt.Println("\n")
         if delePool[i].Auth == 1 {
-            fmt.Printf("candidate %d(delegate %d) have authencated and cl = %d cv = %f.\n", nodes[i].Id, i, delePool[i].Cl, delePool[i].Cv)
+            fmt.Printf("candidate %d(delegate %d) have authencated and cl = %d cv = %f.\n", candPool[i].Id, i, delePool[i].Cl, delePool[i].Cv)
         } else {
-            fmt.Printf("candidate %d(delegate %d) have unauthencated and cl = %d cv = %f.\n", nodes[i].Id, i, delePool[i].Cl, delePool[i].Cv)
+            fmt.Printf("candidate %d(delegate %d) have unauthencated and cl = %d cv = %f.\n", candPool[i].Id, i, delePool[i].Cl, delePool[i].Cv)
         }
     }
 }
@@ -789,7 +806,7 @@ LOOP:
     //delegateNum = (int)(nodeNum / 3)
     //fmt.Printf("This round we have %d nodes then select %d nodes be a delegate node.", nodeNum, delegateNum)
 
-    gene := Block{time.Now().String(), "0000000000000000000000000000000000000000000000000000000000000000", "","I'm the genesis block", 1, "000000"}
+    gene := Block{time.Now().String(), "0000000000000000000000000000000000000000000000000000000000000000", "","I'm the genesis block", 1, "0x0000"}
     gene.calHash()
 	blockchain = append(blockchain, gene)
     //genesisBlock()
@@ -813,16 +830,16 @@ LOOP:
         
         // validate the block then statistic block's coniunity
         // but in real blockchain, one block generated should have validated by six delegate, we just simulate it by one 
-        nodes := SelectDelegate()
+        //nodes := SelectDelegate()
         
         if isBlockValid(newBlock, blockchain[k]) {
             if k >= delegateNum {
                 k %= 10
             }
-            nodes[k].Con++      
+            candPool[k].Con++      
             blockchain = append(blockchain, newBlock)
         } else {
-            nodes[k].Unvalid++
+            candPool[k].Unvalid++
         }
 
         // broadcast message to other nodes
@@ -833,7 +850,7 @@ LOOP:
         // but when we noted UpdateCv/Cl(), everything is ok except cv cannot update
         
         //UpdateCv(nodes[k].Con, nodes[k].Unvalid)
-        Upcv(nodes[k].Con)
+        Upcv(candPool[k].Con)
         UpdateCl()
         fmt.Print("\n-----------Updating contibution value and contribution level...----------\n")
         waitingTime()
