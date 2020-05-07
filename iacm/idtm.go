@@ -597,6 +597,7 @@ func UpdateCv(con, unvalid int) {
 
 // update delegate's cl
 func UpdateCl() {
+    // TODO: use select key word to substitude if loop
 
     // set cl = 2||3 if the target out of contribution value range 
     // for simulate well, we shrink the default contribution value to 0.05
