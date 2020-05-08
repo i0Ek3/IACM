@@ -6,13 +6,13 @@ IACM is an improved DPoS consensus, but this repo just simplized, thanks for tho
 
 Of course, all stuff is simulation instead of real trail environment, so be careful!
 
-## IDTM(WIP)
+## IDTM
 
 Main point:
 
 Node authencation and support degree calculation, then select the delegate nodes. While consensus start, use contribution meachism to update contirbution value and it's level, take measures to reward and punish node. 
 
-## DCML(WIP)
+## DCML
 
 Main point:
 
@@ -20,7 +20,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## Update Log
 
-- v0508: Implement part of alternative strategies in DCML.
+- v0508: Implement part of alternative strategies and LOF algorithm in DCML.
 - v0430: Messed up, more bugs on the way. >_<
 - v0429: Fix and make some bugs.
 - v0428: Modelize the code, fix some issues but not all.
@@ -28,13 +28,14 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## TODO
 
-- [y] Fix same block issue after 3 block generated
-- [y] Implement DCML algorithm(WIP)
-- [n] Fix same Cv/Cl value of every delegate node
-- [n] Add consensus delay
-- [n] Statistic and validate round times 
-- [n] Add P2P function
-- [n] Add interactive interface
+- [x] Fix same block issue after 3 block generated
+- [x] Implement DCML algorithm(WIP)
+- [ ] Fix same Cv/Cl value of every delegate node
+- [ ] Start to block 2 after every 10 blocks generated
+- [ ] Add consensus delay
+- [ ] Statistic and validate round times 
+- [ ] Add P2P function
+- [ ] Add interactive interface
 
 
 ## Credit 

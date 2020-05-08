@@ -364,7 +364,7 @@ func InitialDelegate() {
 
         delePool = append(delePool, D{Node{info, id, vote, f}, auth, d, cl, cv, con, un, bad, good, addr, fmm})
         delePool[i] = D{Node{info, id, vote, f}, auth, d, cl, cv, con, un, bad, good, addr, fmm}
-        fmt.Println("initialized to delegate ", i, candPool[i])
+        fmt.Println("initialized to delegate", i, candPool[i])
     }
 }
 
@@ -544,8 +544,8 @@ func Upcv(delePoolCon int) {
 // yeah, we messed up this one!
 func UpdateCv(con, unvalid int) { 
     // the arguments of calculate the contribution value
-    sum1        := 0.0
-    sum2        := 0.0
+    sum1 := 0.0
+    sum2 := 0.0
 
     blockHeight := len(blockchain)
     oldBlock := blockchain[blockHeight-1]
@@ -557,7 +557,7 @@ func UpdateCv(con, unvalid int) {
     // in other words, we needn't validate the block whether it valid or not
     // cause of con, if con > 0 that means the block must be validated and valid
     // else, while con = 0 that means block is unvalid
-    
+    // FIXME: messed up here
     for i := 0; i < delegateNum; i++ {
         delta := -(float64)(delePool[i].Con)
         
@@ -724,7 +724,7 @@ func ContributionMechanism() {
     fmt.Print("\n-------------Updating contibution value and contribution level...--------------\n")
     waitingTime()
     ShowCvCl(round)
-    fmt.Print("\n------------Contibution value and contribution level updated!------------\n")
+    fmt.Print("\n--------------Contibution value and contribution level updated!------------\n")
     
     Feedback()
     Shuffle()
@@ -766,6 +766,12 @@ func getNotify() {
 // candidate monitor
 // create counter and buffer while consensus initilizing
 func CandidateMonitor() {
+    fmt.Println("\n---------------Start to monitor candidate nodes.----------------\n")
+    waitingTime()
+
+    fmt.Println("\n--------Creating the global counter and alternative buffer.---------\n")
+    waitingTime()
+    
     counter = 0
     buffer = nodeNum / 2
     localCnt := 0
@@ -776,7 +782,7 @@ func CandidateMonitor() {
 
         // read data from state table if the data exist
         // if not, we statistic it automatically
-        if deletePool[i].isDelete && freezePool[i].isDelete {
+        if delePool[i].isDelete && freezePool[i].isDelete {
             counter = len(deletePool) + len(freezePool)
         } else if deletePool[i].isDelete {
             counter = len(deletePool)
@@ -793,22 +799,117 @@ func CandidateMonitor() {
     }
 }
 
-// Euclidean distance
-func EuclideanDistance() {
+// local density of one sample point
+func LocalDensity() []float64 {
+    var neighbor  = make([]D, candidateNum)
+    var density [candidateNum]float64
+    var dis [candidateNum]float64
+    
+    // k-th distance, specific randomly
+    k := 10 
+    
+    // wk is weight to avoid the distance is zero
+    wk := 0.01
 
+    // calculate the distance between other sample point and point p
+    // sort them then take kth distance as k-distance
+    for i := 0; i < candidateNum; i++ {
+        //var kd [candidateNum]float64 
+
+        // calculate the distance, but with this moment, we just simulate the distance instead of calculate the real distance
+        dis[i] = float64(rand.Intn(candidateNum))
+        if dis[i] == 0 {
+            dis[i] += wk
+        }
+
+        // sort distance
+        if dis[i] < dis[i+1] {
+            dis[i] = dis[i+1]
+        }
+        kth := dis[k]
+
+        if dis[i] <= kth {
+            neighbor[i] = candPool[i]
+        }
+        
+        // the local density of point p
+        density[i] = float64(1) / kth
+    }
+    return density[:candidateNum]
 }
 
-// local outlier factor
+// density mean
+func DensityMean() float64 {
+    /*
+    // find the n point which is p's neighbor
+    var neighbor  = make([]D, candidateNum)
+    for i := 0; i < candidateNum; i++ {
+        if dis[i] <= kth {
+            neighbor[i] = candPool[i]
+        }
+    }
+    */
+
+    densityMean := 0.0
+    sum := 0.0
+    density := LocalDensity()
+
+    // calculate the mean of density
+    for i := 0; i < candidateNum; i++ {
+        sum += density[i]
+    }
+    densityMean = 1/delegateNum * sum
+    
+    return densityMean
+}
+
+// LOF score
+func LOFScore() []float64 {
+    density := LocalDensity()
+    densityMean := DensityMean()
+    var score [delegateNum]float64
+
+    for i := 0; i < delegateNum; i++ {
+        score[i] = densityMean / density[i]
+    }
+    return score[:delegateNum]
+}
+
+// local outlier factor, which is based density
+// core thought is a node whether is abnormal or normal which depends local enviornment
 // calculation steps
 //      1. dis(p, kth)
-//      2. k-d(p) // we use euclidean distance
+//      2. k-d(p) 
 //      3. r-d_k(p, o) = max{k-d(o), d(p, o)} + w_k
 //      4. lrd_k(p)
 //      5. LOF_k(p)
 func LOF() {
-    //neighbors       := 20       // equals k above we descrip
-    //contamination   := 0.1      // ratio of abnormal nodes
+    fmt.Println("\n---------------Start to run LOF algorithm.----------------\n")
+    waitingTime()
+    
+    var anomaly [delegateNum]float64
+    var normal [delegateNum]float64
 
+
+    fmt.Println("\n-----------------LOF algorithm runing...-----------------\n")
+    waitingTime()
+    
+    score := LOFScore()
+    for i := 0; i < delegateNum; i++ {
+        if score[i] <= 1.0 {
+            normal[i] = score[i]
+            fmt.Println("\nThe data point is Ok, not like an anomaly!\n")
+        } else if score[i] > 1.0 && score[i] <= 1.3 {
+            normal[i] = score[i]
+            fmt.Println("\nIt seems that this point closer to others, not like an anomaly!\n")
+        } else {
+            anomaly[i] = score[i]
+            fmt.Println("\nThis point far away other nodes, just like an anomaly!\n")
+        }
+    }
+    
+    fmt.Println("\n-----------------LOF Algorithm run over!-----------------\n")
+    waitingTime()
 }
 
 // multivariable guassian model
@@ -817,28 +918,43 @@ func LOF() {
 //      2. calculate the model prob(x) use new samples
 //      3. compare prob(x) with epsilon
 func MGM() {
+    fmt.Println("\n-----------------MGM algorithm runing...-----------------\n")
+    waitingTime()
 
+
+
+    fmt.Println("\n-----------------MGM Algorithm run over!-----------------\n")
+    waitingTime()
 }
 
 // abnormal detection
 func AbnormalDetection(cand D) bool {
+    fmt.Println("\n---------------Start to abnormal detect...----------------\n")
+    waitingTime()
+    
     LOF()
     MGM()
+    
+    fmt.Println("\n----------------Abnormal detect have done!----------------\n")
+    waitingTime()
+
     return true
 }
 
 // three alternative strategies
 // alternate on time
 func TimingAlternate() {
-    alternateNum := candidateNum 
     timer := threshold
+    alternateNum := candidateNum 
 
-    // timer
+    // timer counter
     for i := timer; i > 0; i-- {
         for j := 0; j < alternateNum; j++ {
-            // abnormal detection
+            // validate abnormal detection result
             if AbnormalDetection(candPool[j]) {
                 alterPool[j] = candPool[j]
+            } else {
+                fmt.Println("\nAbnormal detection failed, AD next one!\n")
             }
         }
     }
@@ -847,9 +963,13 @@ func TimingAlternate() {
 // alternate smally
 // should satisfied n >= 3f + 1, f is abnormal node, n is total delegate number
 func MinimumAlternate() {
-    tmpCnt := 0
+    tmpCnt  := 0
+
     for i := 0; i < delegateNum; i++ {
-        if deletePool[i].isDelete || freezePool[i].isDelete {
+        if deletePool[i].isDelete {
+            tmpCnt++
+        } 
+        if freezePool[i].isDelete {
             tmpCnt++
         }
 
@@ -880,7 +1000,14 @@ func alternateInterval() {
 
 // alternated accroding full load
 func alternateFullLoad() {
-    if alterPool[alternateNum-1].isGood {
+    cnt := 0
+    for i := 0; i < delegateNum; i++ {
+        if AbnormalDetection(candPool[i]) {
+            cnt++
+        }
+    }
+
+    if cnt == alternateNum {
         for i := 0; i < delegateNum; i++ {
             if AbnormalDetection(candPool[i]) {
                 for j := 0; j < alternateNum; j++ {
@@ -888,21 +1015,44 @@ func alternateFullLoad() {
                 }    
             } 
         }
+    } else if cnt > alternateNum {
+        fmt.Println("\nThe buffer is full, please store qualified candidate nodes after nodes alternated in the buffer!\n")
+        waitingTime()
+    } else {
+        fmt.Println("\nThe buffer need to fill, please going on...\n")
+        waitingTime()
     }
+}
+
+// statistic bad nodes' number
+func Statistic() int {
+    tmpCnt := 0
+    for i := 0; i < delegateNum; i++ {
+        if deletePool[i].isDelete {
+            tmpCnt++
+        }
+        if freezePool[i].isDelete {
+            tmpCnt++
+        }
+    }
+    return tmpCnt
 }
 
 // alternate regularly 
 func RegularAlternate() {
+    // tmpCnt means the number of need to alternate
     tmpCnt := 0
     for i := 0; i < delegateNum; i++ {
-        // FIXME: maybe we should use if-else to find all cases which have satisfied condtion
-        if deletePool[i].isDelete || freezePool[i].isDelete {
+        if deletePool[i].isDelete {
+            tmpCnt++
+        }
+        if freezePool[i].isDelete {
             tmpCnt++
         }
     }
 
     // accroding tmpCnt to select alternative mode
-    if tmpCnt < 2 {
+    if tmpCnt >= 3 {
         alternateInterval()
     } else {
         alternateFullLoad()
@@ -911,9 +1061,15 @@ func RegularAlternate() {
 
 // alternative strategy
 func SelectAlternativeStrategy() {
+    fmt.Println("\n---------------Start to select alternative strategy...----------------\n")
+    waitingTime()
+    
     tmpCnt := 0
     for i := 0; i < delegateNum; i++ {
-        if deletePool[i].isDelete || freezePool[i].isDelete {
+        if deletePool[i].isDelete {
+            tmpCnt++
+        }
+        if freezePool[i].isDelete {
             tmpCnt++
         }
     }
@@ -928,23 +1084,39 @@ func SelectAlternativeStrategy() {
     } else {
         RegularAlternate()
     }
+
+    fmt.Println("\n---------------Alternative strategy already selected!----------------\n")
+    waitingTime()
 }
 
 // alternate dynamicly
+// what we called alternate dynamicly means that we select nodes from alterPool to participate the consensus 
 func DynamicAlternate() {
+    fmt.Println("\n-------------------Start to dynamic alternating...---------------------\n")
+    waitingTime()
+    
     CandidateMonitor()
-    //AbnormalDetection()
+
+    //This step, abnormal detection was executed in the SelectAlternativeStrategy()
     SelectAlternativeStrategy()
+    
+    fmt.Println("\n-------------------Dynamic alternating have done!----------------------\n")
+    waitingTime()
 }
 
-// DCML algorithm calling
+// DCML algorithm
+// check nodes' attributions then notify other nodes whether this one is ok with broadcast
+// and then, alternate dynamicly
 func DCML() {
-    //CandidateMonitor() // dynamic alternataion algo step
-    //AbnormalDetection()
-    //SelectAlternativeStrategy() // includes three alternative stragtegies
+    fmt.Println("\n----------------------Runing DCML algorithm...----------------------\n")
+    waitingTime()
+    
     CheckAttr()
     getNotify()
     DynamicAlternate() 
+    
+    fmt.Println("\n----------------------DCML algorithm run over!----------------------\n")
+    waitingTime()
 }
 
 // main function
@@ -958,7 +1130,7 @@ LOOP:
     //delegateNum = (int)(nodeNum / 3)
     //fmt.Printf("This round we have %d nodes then select %d nodes be a delegate node.", nodeNum, delegateNum)
 
-    gene := Block{time.Now().String(), "0000000000000000000000000000000000000000000000000000000000000000", "","I'm the genesis block", 1, "0x0000"}
+    gene := Block{time.Now().String(), "0000000000000000000000000000000000000000000000000000000000000000", "","I'm the genesis block", 1, "0x000"}
     gene.calHash()
 	blockchain = append(blockchain, gene)
     //genesisBlock()
@@ -1031,8 +1203,9 @@ LOOP:
     //ContributionMechanism()
     check := true
     Check(check)
-
-    //DCML()
+ 
+    // call dcml algorithm
+    DCML()
 
     // run the next loop
     fmt.Println("\n---------------------------Next loop?----------------------------\n")
