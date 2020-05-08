@@ -1,7 +1,6 @@
-// IACM-IDTM
-//      Name: idtm.go
-//      Author: mcy
 //      An improved DPoS consensus implementation. 
+//      Name: iacm.go
+//      Author: mcy
 //
 
 package main // this one can be execute by command: go run 
@@ -22,6 +21,7 @@ const (
     nodeNum         = 101   // sum of nodes
     candidateNum    = 30    // candidate number
     delegateNum     = 10    // delegate number
+    alternateNum    = 30
     alpha           = 0.8   // factor of auth   
     beta            = 0.2   // factor of vote
     reward          = 0.005
@@ -29,6 +29,10 @@ const (
     lambda          = 0.5
     lambda1         = 0.25
     lambda2         = 0.05
+    check           = false
+    threshold       = 5     // the length of timer
+    mini            = 6     // mininum delegate
+    interval        = 10    // the factor of interval
 )
 
 // the struct of common node
@@ -73,6 +77,12 @@ type D struct {
     fmm         string
 }
 
+// alternate struct for dcml algorithm
+type Alter struct {
+    D
+    isAlter     bool
+}
+
 // the struct of Block
 type Block struct {
     Timestamp   string
@@ -87,7 +97,7 @@ type Block struct {
 var (
     nodePool    = make([]Node, nodeNum)  // common node pool
     candPool    = make([]D, candidateNum)// candidate node pool
-    delePool    = make([]D, nodeNum) // delegate node pool
+    delePool    = make([]D, nodeNum)     // delegate node pool
     
     deletePool  = make([]D, delegateNum) // state table: store cl=4's nodes
     freezePool  = make([]D, delegateNum) // state table: store cl=3's nodes
@@ -101,6 +111,12 @@ var (
     rewardTimes float64      // times of reward
     punishTimes float64      // times of punish
     vote        int
+
+    counter     int          // maybe we needn't change them size dynamticly 
+    buffer      int          // cause of them size is cleared 
+    //counter     [nodeNum/2]int          // for dcml algo use
+    //buffer      [nodeNum/2]int          // same as last
+    alterPool   = make([]D, candidateNum)
 )
 
 // first block: genesis block
@@ -348,7 +364,7 @@ func InitialDelegate() {
 
         delePool = append(delePool, D{Node{info, id, vote, f}, auth, d, cl, cv, con, un, bad, good, addr, fmm})
         delePool[i] = D{Node{info, id, vote, f}, auth, d, cl, cv, con, un, bad, good, addr, fmm}
-        fmt.Println("initialized to delegate %d:", candPool[i], i)
+        fmt.Println("initialized to delegate ", i, candPool[i])
     }
 }
 
@@ -723,8 +739,18 @@ func Broadcast() {
     fmt.Println("\n--------------------Broadcast done!---------------------\n")
 }
 
+// check consensus whether end
+func Check(ch bool) bool {
+    if ch {
+        fmt.Println("\n--------------Current consensus is over!--------------\n") 
+        return true
+    }
+    fmt.Println("\n--------------Current consensus si continuing...!---------------\n") 
+    return false
+}
+
 // DCML algorithm 
-// get votes notify
+// notified other nodes whether voted
 func getNotify() {
     for i := 0; i < nodeNum; i++ {
         if delePool[i].isDelete {
@@ -738,51 +764,176 @@ func getNotify() {
 }
 
 // candidate monitor
+// create counter and buffer while consensus initilizing
 func CandidateMonitor() {
+    counter = 0
+    buffer = nodeNum / 2
+    localCnt := 0
+    
+    for i := 0; i < delegateNum; i++ {
+        //counter[i] = 0
+        //buffer[i]  = 0
+
+        // read data from state table if the data exist
+        // if not, we statistic it automatically
+        if deletePool[i].isDelete && freezePool[i].isDelete {
+            counter = len(deletePool) + len(freezePool)
+        } else if deletePool[i].isDelete {
+            counter = len(deletePool)
+        } else if freezePool[i].isDelete {
+            counter = len(freezePool)
+        } else  {
+            localCnt++
+        }
+    } 
+
+    // set counter to zero while counter is too big every consensus end
+    if Check(check) {
+        counter = 0
+    }
+}
+
+// Euclidean distance
+func EuclideanDistance() {
 
 }
 
 // local outlier factor
+// calculation steps
+//      1. dis(p, kth)
+//      2. k-d(p) // we use euclidean distance
+//      3. r-d_k(p, o) = max{k-d(o), d(p, o)} + w_k
+//      4. lrd_k(p)
+//      5. LOF_k(p)
 func LOF() {
+    //neighbors       := 20       // equals k above we descrip
+    //contamination   := 0.1      // ratio of abnormal nodes
 
 }
 
 // multivariable guassian model
+// calculation steps
+//      1. calculate the average of every feature
+//      2. calculate the model prob(x) use new samples
+//      3. compare prob(x) with epsilon
 func MGM() {
 
 }
 
 // abnormal detection
-func AbnormalDetection() {
+func AbnormalDetection(cand D) bool {
     LOF()
     MGM()
+    return true
 }
 
 // three alternative strategies
 // alternate on time
 func TimingAlternate() {
+    alternateNum := candidateNum 
+    timer := threshold
 
+    // timer
+    for i := timer; i > 0; i-- {
+        for j := 0; j < alternateNum; j++ {
+            // abnormal detection
+            if AbnormalDetection(candPool[j]) {
+                alterPool[j] = candPool[j]
+            }
+        }
+    }
 }
 
 // alternate smally
+// should satisfied n >= 3f + 1, f is abnormal node, n is total delegate number
 func MinimumAlternate() {
+    tmpCnt := 0
+    for i := 0; i < delegateNum; i++ {
+        if deletePool[i].isDelete || freezePool[i].isDelete {
+            tmpCnt++
+        }
 
+        // judge the condtion whether satisfied
+        if delegateNum - tmpCnt < mini {
+            if AbnormalDetection(candPool[i]) {
+                for j := 0; j < alternateNum; j++ {
+                    alterPool[j] = candPool[j]
+                } 
+            }
+        }
+    }
+}
+
+// alternated accroding interval
+func alternateInterval() {
+    // alternated accroding interval
+    for i := interval; i > 0; i-- {
+        for i := 0; i < delegateNum; i++ {
+            if AbnormalDetection(candPool[i]) {
+                for j := 0; j < alternateNum; j++ {
+                    alterPool[j] = candPool[j]
+                }    
+            } 
+        }
+    }
+}
+
+// alternated accroding full load
+func alternateFullLoad() {
+    if alterPool[alternateNum-1].isGood {
+        for i := 0; i < delegateNum; i++ {
+            if AbnormalDetection(candPool[i]) {
+                for j := 0; j < alternateNum; j++ {
+                    alterPool[j] = candPool[j]
+                }    
+            } 
+        }
+    }
 }
 
 // alternate regularly 
-func RegualrAlternate() {
+func RegularAlternate() {
+    tmpCnt := 0
+    for i := 0; i < delegateNum; i++ {
+        // FIXME: maybe we should use if-else to find all cases which have satisfied condtion
+        if deletePool[i].isDelete || freezePool[i].isDelete {
+            tmpCnt++
+        }
+    }
 
+    // accroding tmpCnt to select alternative mode
+    if tmpCnt < 2 {
+        alternateInterval()
+    } else {
+        alternateFullLoad()
+    }
 }
 
 // alternative strategy
 func SelectAlternativeStrategy() {
+    tmpCnt := 0
+    for i := 0; i < delegateNum; i++ {
+        if deletePool[i].isDelete || freezePool[i].isDelete {
+            tmpCnt++
+        }
+    }
 
+    // we use timing alternate when the delete node and freeze node more than half of delegate number
+    // if not, we use mininum alternate when the rest node is equals mini number
+    // else, we use regular alternate mode
+    if tmpCnt > delegateNum / 2 {
+        TimingAlternate()
+    } else if delegateNum - tmpCnt == mini {
+        MinimumAlternate()
+    } else {
+        RegularAlternate()
+    }
 }
 
 // alternate dynamicly
 func DynamicAlternate() {
     CandidateMonitor()
-    AbnormalDetection()
+    //AbnormalDetection()
     SelectAlternativeStrategy()
 }
 
@@ -878,6 +1029,9 @@ LOOP:
         } 
     }
     //ContributionMechanism()
+    check := true
+    Check(check)
+
     //DCML()
 
     // run the next loop
