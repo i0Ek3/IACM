@@ -25,7 +25,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## TODO
   
-> If I have time I will fix follows issues.
+> If I have time I will fix follows issues and todos.
 
 - [x] Fix same block issue after 3 block generated
 - [x] Implement DCML algorithm
@@ -41,4 +41,4 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 Big thanks to GitHub with open source code.
 
-**ps: Freshbird write the F**king code, you can take a look then leave, good for you.**
+ps: Freshbird write the F**king code, you can take a look then leave, good for you.
