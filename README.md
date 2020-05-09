@@ -1,10 +1,6 @@
 # IACM
 
-> **[WIP]**
-
-IACM is an improved DPoS consensus, but this repo just simplized, thanks for those people who contribute to the Golang DPoS implementation.
-
-Of course, all stuff is simulation instead of real trail environment, so be careful!
+IACM is an improved DPoS consensus implement by Go, which includes algorithm IDTM and DCML. Of course, all stuff here just simulation instead of real ones, so if you want to use it, please be careful and YOU OWN RISK. After all, this repo just for personal academic research, BE KNOWN!!!
 
 ## IDTM
 
@@ -20,6 +16,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## Update Log
 
+- v0509: Finished algorithm MGM but we got nothing about the data. 
 - v0508: Implement part of alternative strategies and LOF algorithm in DCML.
 - v0430: Messed up, more bugs on the way. >_<
 - v0429: Fix and make some bugs.
@@ -27,17 +24,21 @@ When bad nodes have taken down, the blank position should affect consensus proce
 - v0425: Finished basic function of IDTM.
 
 ## TODO
+  
+> If I have time I will fix follows issues.
 
 - [x] Fix same block issue after 3 block generated
-- [x] Implement DCML algorithm(WIP)
+- [x] Implement DCML algorithm
 - [ ] Fix same Cv/Cl value of every delegate node
 - [ ] Start to block 2 after every 10 blocks generated
 - [ ] Add consensus delay
 - [ ] Statistic and validate round times 
 - [ ] Add P2P function
 - [ ] Add interactive interface
-
+- [ ] Output data required
 
 ## Credit 
 
 Big thanks to GitHub with open source code.
+
+**ps: Freshbird write the F**king code, you can take a look then leave, good for you.**

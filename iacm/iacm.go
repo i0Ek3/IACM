@@ -1,10 +1,11 @@
-//      An improved DPoS consensus implementation. 
+//
 //      Name: iacm.go
 //      Author: mcy
 //
+//      An improved DPoS consensus implement by Go,  which includes algorithm IDTM and DCML.  
+//
 
-package main // this one can be execute by command: go run 
-//package idtm // but this one only can use command: go build
+package main 
 
 import (
     "crypto/sha256"
@@ -33,6 +34,9 @@ const (
     threshold       = 5     // the length of timer
     mini            = 6     // mininum delegate
     interval        = 10    // the factor of interval
+    dimension       = 1     // use in MGM
+    epsilon1        = 0.6
+    epsilon2        = 0.8
 )
 
 // the struct of common node
@@ -806,9 +810,10 @@ func LocalDensity() []float64 {
     var dis [candidateNum]float64
     
     // k-th distance, specific randomly
+    // the argument we talk about in the paper
     k := 10 
     
-    // wk is weight to avoid the distance is zero
+    // wk is weight to avoid the distance become zero
     wk := 0.01
 
     // calculate the distance between other sample point and point p
@@ -883,6 +888,8 @@ func LOFScore() []float64 {
 //      3. r-d_k(p, o) = max{k-d(o), d(p, o)} + w_k
 //      4. lrd_k(p)
 //      5. LOF_k(p)
+// in other hand, we should to process dataset into several segments to reduce the time complexity, but here we haven't dataset
+//
 func LOF() {
     fmt.Println("\n---------------Start to run LOF algorithm.----------------\n")
     waitingTime()
@@ -912,7 +919,141 @@ func LOF() {
     waitingTime()
 }
 
-// multivariable guassian model
+// calculate the features average
+// one-d
+func FeatureAverage1D() ([]float64, []float64, []float64) {
+    // initialize arguments
+    var miu   [candidateNum]float64
+    var sigma [candidateNum]float64
+    var delta [candidateNum]float64
+    var x     [candidateNum]float64
+    miuSum   := 0.0
+    sigmaSum := 0.0
+    deltaSum := 0.0
+    
+    for i := 1; i < candidateNum; i++ {
+        for j := 0; j < candidateNum; j++ {
+            // simulate the data point randomlynp.random.multivariate_normal
+            x[j]       = float64(rand.Intn(nodeNum))
+            miu[j]     = float64(rand.Intn(nodeNum))
+                
+            miuSum    += x[j]
+            transpose := (float64(i) * x[j] + float64(j)) - (float64(i) * miu[j] + float64(j)) 
+            sigmaSum  += (x[j] - miu[j]) * transpose
+            deltaSum  += (x[j] - miu[j]) * (x[j] - miu[j])
+
+            miu[j]     = 1/candidateNum * miuSum
+            sigma[j]   = 1/candidateNum * sigmaSum
+            delta[j]   = math.Sqrt(1/candidateNum * deltaSum) 
+        }
+    }
+
+    return miu[:], sigma[:], delta[:]
+}
+
+// two-d
+func FeatureAverage2D() ([][candidateNum]float64, [][candidateNum]float64, [][candidateNum]float64) {
+    var miu   [candidateNum][candidateNum]float64
+    var sigma [candidateNum][candidateNum]float64
+    var delta [candidateNum][candidateNum]float64
+    var x     [candidateNum][candidateNum]float64
+    miuSum   := 0.0
+    sigmaSum := 0.0
+    deltaSum := 0.0
+        
+    for i := 1; i < candidateNum; i++ {
+        for j := 0; j < candidateNum; j++ {
+            // simulate the data point randomly
+            x[i][j]       = float64(rand.Intn(nodeNum))
+            miu[i][j]     = float64(rand.Intn(nodeNum))
+                
+            miuSum    += x[i][j]
+            transpose := (float64(i) * x[i][j] + float64(j)) - (float64(i) * miu[i][j] + float64(j)) 
+            sigmaSum  += (x[i][j] - miu[i][j]) * transpose
+            deltaSum  += (x[i][j] - miu[i][j]) * (x[i][j] - miu[i][j])
+
+            miu[i][j]     = 1/candidateNum * miuSum
+            sigma[i][j]   = 1/candidateNum * sigmaSum
+            delta[i][j]   = math.Sqrt(1/candidateNum * deltaSum) 
+        }
+    }
+
+    return miu[:][:], sigma[:][:], delta[:][:]
+}
+
+// calculate the probility
+// one-d
+func Probility1D() []float64 {
+    miu, _, delta := FeatureAverage1D()
+    var x [candidateNum]float64
+    var pre [candidateNum]float64
+    var exp [candidateNum]float64
+    var prob [candidateNum]float64
+    
+    for j := 1; j < candidateNum; j++ {
+        x[j]   = float64(rand.Intn(nodeNum))
+
+        pre[j]  = 1 / (math.Sqrt(2 * 3.14) * delta[j])
+        exp[j]  = -1/2 * math.Pow(x[j]-miu[j], 2) / (math.Pow(delta[j], 2))
+        prob[j] = pre[j] * math.Exp(exp[j])                  
+    }
+
+    return prob[:]
+}
+
+// two-d
+func Probility2D() [][candidateNum]float64 {
+    miu, _, delta := FeatureAverage2D()
+    var x [candidateNum][candidateNum]float64
+    var pre [candidateNum][candidateNum]float64
+    var exp [candidateNum][candidateNum]float64
+    var prob [candidateNum][candidateNum]float64
+
+    for i := 1; i < candidateNum; i++ {
+        for j := 0; j < candidateNum; j++ {
+            x[i][j] = float64(rand.Intn(nodeNum))
+
+            pre[i][j]  = 1 / (math.Sqrt(2 * 3.14) * delta[i][j])
+            exp[i][j]  = -1/2 * math.Pow(x[i][j]-miu[i][j], 2) / (math.Pow(delta[i][j], 2))
+            prob[i][j] = pre[i][j] * math.Exp(exp[i][j])
+        }
+    }
+
+    return prob[:][:]
+}
+
+// judge one point whether a normal or anomaly one
+// one-d
+func JudgeIt1D() {
+    prob := Probility1D()
+    for i := 0; i < candidateNum; i++ {
+        if prob[i] < epsilon1 {
+            fmt.Println("\nTHIS POINT IS ANOMALY!!!!\n")
+            waitingTime()
+        } else {
+            fmt.Println("\nTHIS POINT IS NORMAL!!!!\n")
+            waitingTime()
+        }
+    }
+}
+
+// two-d
+func JudgeIt2D() {
+    prob := Probility2D()
+    for i := 0; i < candidateNum; i++ {
+        for j := 0; j < candidateNum; j++ {
+            if prob[i][j] < epsilon2 {
+                fmt.Println("\nTHIS POINT IS ANOMALY!!!!\n")
+                waitingTime()
+            } else {
+                fmt.Println("\nTHIS POINT IS NORMAL!!!!\n")
+                waitingTime()
+            }
+        }
+    }
+}
+
+// multivariate guassian model(Multivariate normal distribution)
 // calculation steps
 //      1. calculate the average of every feature
 //      2. calculate the model prob(x) use new samples
@@ -921,7 +1062,16 @@ func MGM() {
     fmt.Println("\n-----------------MGM algorithm runing...-----------------\n")
     waitingTime()
 
-
+    if dimension == 1 {
+        FeatureAverage1D()
+        Probility1D()
+        JudgeIt1D()
+    }
+    if dimension == 2 {
+        FeatureAverage2D()
+        Probility2D()
+        JudgeIt2D()
+    }
 
     fmt.Println("\n-----------------MGM Algorithm run over!-----------------\n")
     waitingTime()
@@ -932,6 +1082,7 @@ func AbnormalDetection(cand D) bool {
     fmt.Println("\n---------------Start to abnormal detect...----------------\n")
     waitingTime()
     
+    // FIXME: MGM need to filter the nodes checked after LOF instead of use MGM after LOF directly
     LOF()
     MGM()
     
