@@ -23,6 +23,7 @@ const (
     candidateNum    = 30    // candidate number
     delegateNum     = 10    // delegate number
     alternateNum    = 30
+    NUMBER          = 10
     alpha           = 0.8   // factor of auth   
     beta            = 0.2   // factor of vote
     reward          = 0.005
@@ -37,6 +38,7 @@ const (
     dimension       = 1     // use in MGM
     epsilon1        = 0.6
     epsilon2        = 0.8
+    attention       = 1     // for FCSW use  
 )
 
 // the struct of common node
@@ -308,7 +310,7 @@ func CalSD() {
 }
 
 // select delegate node from candidate
-func SelectDelegate() []D {
+func SelectDelegate(number int) []D {
     n := candPool
     for i := 0; i < len(n); i++ {
         // check node wheather isDelete from round 2
@@ -322,18 +324,18 @@ func SelectDelegate() []D {
         }
     }
 
-    for i := 0; i < delegateNum; i++ {
+    for i := 0; i < number; i++ {
         fmt.Println(candPool[i])
     }
 
     //delePool = append(delePool, candPool)
-    return n[:delegateNum]
+    return n[:number]
 }
 
 // initialize consensus: initialize delegate node
-func InitialDelegate() {
+func InitialDelegate(number int) {
     //nodes := SelectDelegate()
-    for i := 0; i < delegateNum; i++ {
+    for i := 0; i < number; i++ {
         delePool[i].Cl       = 2
         delePool[i].Cv       = 0.05
         delePool[i].Con      = 0
@@ -375,9 +377,9 @@ func InitialDelegate() {
 // time simulation
 func waitingTime() {
     if candidateNum <= (int)(1/3 * nodeNum) {
-        time.Sleep(3 * time.Second)
+        time.Sleep(10 * time.Second)
     } else {
-        time.Sleep(5 * time.Second)
+        time.Sleep(6 * time.Second)
     }
 }
 
@@ -422,7 +424,7 @@ func Shuffle() {
 		}
 	}
 
-    SelectDelegate()
+    SelectDelegate(NUMBER)
 	tmp := delePool[idx1]
 	delePool[idx1] = delePool[idx2]
 	delePool[idx2] = tmp
@@ -475,14 +477,14 @@ func Process() {
     fmt.Print("\n-----------------Select delegate nodes-----------------\n")
     fmt.Println("\tinfo id votes auth d cl cv con bad good \n")
     waitingTime()
-    SelectDelegate()
+    SelectDelegate(NUMBER)
     fmt.Println("\n")
     //fmt.Println(nodes)
 
     // initial consensus
     fmt.Print("\n---------------Initializing consensus...---------------\n")
     waitingTime()
-    InitialDelegate()
+    InitialDelegate(NUMBER)
     
     // old generate block version
     //waitingTime()
@@ -504,7 +506,7 @@ func genLoop() {
     // generate the block
     fmt.Print("\n------------------------Generating block...-------------------------\n")
     waitingTime()
-    nodes := SelectDelegate()
+    nodes := SelectDelegate(NUMBER)
     for i := 0; i < len(nodes); i++ {
         if nodes[i].Auth == 1 {
             // TODO: think add block address with hash code
@@ -643,8 +645,6 @@ func UpdateCl() {
 
 // display the information of delegates' cv and cl
 func ShowCvCl(round int) {
-    //nodes := SelectDelegate()
-
     // FIXME: every delegate after generate block, we update it's conrespoding cl and cv, one by one instead of update all
     for i := 0; i < round; i++ {
         //fmt.Println("\n")
@@ -662,7 +662,7 @@ func Feedback() {
     waitingTime()
     
     // according the nodes' contribution level to put them back into conresponding pool
-    nodes := SelectDelegate()
+    nodes := SelectDelegate(NUMBER)
     for i := 0; i < delegateNum; i++ {
         if delePool[i].Cl == 4 {
             delePool[i].isDelete = true
@@ -1094,9 +1094,10 @@ func AbnormalDetection(cand D) bool {
 
 // three alternative strategies
 // alternate on time
-func TimingAlternate() {
+func TimingAlternate(number int) {
     timer := threshold
-    alternateNum := candidateNum 
+    //alternateNum := candidateNum 
+    alternateNum := number 
 
     // timer counter
     for i := timer; i > 0; i-- {
@@ -1229,7 +1230,7 @@ func SelectAlternativeStrategy() {
     // if not, we use mininum alternate when the rest node is equals mini number
     // else, we use regular alternate mode
     if tmpCnt > delegateNum / 2 {
-        TimingAlternate()
+        TimingAlternate(candidateNum)
     } else if delegateNum - tmpCnt == mini {
         MinimumAlternate()
     } else {
@@ -1304,41 +1305,73 @@ func ComparisonDPoS() {
     fmt.Print("\n-----------------Select delegate nodes-----------------\n")
     fmt.Println("\tinfo id votes auth d cl cv con bad good \n")
     waitingTime()
-    SelectDelegate()
+    SelectDelegate(NUMBER)
     fmt.Println("\n")
     //fmt.Println(nodes)
 
     // initial consensus
     fmt.Print("\n---------------Initializing consensus...---------------\n")
     waitingTime()
-    InitialDelegate()
+    InitialDelegate(NUMBER)
     
     fmt.Print("\n------------Comparison algorithm DPoS over!---------------------\n")
     waitingTime()
 }
 
-// FCSW
+// fuse machnism
+func FuseMachnism() float64 {
+    var thres float64
+    var fuseFactor float64
+    totalVotes := rand.Intn(nodeNum)
+
+    // fusing machnism
+    if attention == 1 {
+        // pay more attention to against vote
+        fuseFactor = 0.1
+        thres = fuseFactor * (float64)(totalVotes)
+    } else {
+        fuseFactor = 0.5
+        thres = fuseFactor * (float64)(totalVotes)
+    }
+    return thres
+}
+
+// credit machnism
+func CreditMachnism() float64 {
+    var result float64
+    supportVotes := rand.Intn(nodeNum)
+    againstVotes := rand.Intn(candidateNum)
+    result = alpha * (float64)(supportVotes) - beta * (float64)(againstVotes)
+    return result
+}
+
+// standby witness machnism 
+// select n+m nodes to be delegate, n to consensus then alternate m nodes
+func StandbyWitnessMachnism() {
+    m := 5
+    SelectDelegate(NUMBER+m)
+    InitialDelegate(NUMBER+m)
+    Consensus()
+    // TODO: alternate these m nodes first
+    TimingAlternate(candidateNum)
+
+}
+
+// FCSW--an improved DPoS
 func ComparisonFCSW() {
     fmt.Print("\n---------Runing comparison algorithm FCSW...---------\n")
     waitingTime()
 
-    // fusing machnism
-    // TODO:
-
-    // credit machnism
-    // TODO:
-
-    // standby witness machnism 
-    // TODO:
-    TimingAlternate()
+    FuseMachnism()
+    CreditMachnism()
+    StandbyWitnessMachnism()
 
     fmt.Print("\n------------Comparison algorithm FCSW over!---------------------\n")
     waitingTime()
 }
 
-// main function
-func main() {
-LOOP:
+// runing consensus
+func Consensus() {
     Process()
     
     // TODO: add interactive interface
@@ -1423,6 +1456,12 @@ LOOP:
  
     // call dcml algorithm
     DCML()
+}
+
+// main function
+func main() {
+LOOP:
+    Consensus()
 
     // run the comparison algorith
     fmt.Println("\n----------Would you like to run comparison algorithm?----------\n")

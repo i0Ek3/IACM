@@ -16,7 +16,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## Update Log
 
-- v0510: Add simple comparison algorithm.
+- v0510: Add and upgrade comparison algorithm.
 - v0509: Finished algorithm MGM but we got nothing about the data. 
 - v0508: Implement part of alternative strategies and LOF algorithm in DCML.
 - v0430: Messed up, more bugs on the way. >_<
@@ -30,6 +30,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 - [x] Fix same block issue after 3 block generated
 - [x] Implement DCML algorithm
+- [x] Finished FCSW comparison algorithm 
 - [ ] Fix same Cv/Cl value of every delegate node
 - [ ] Start to block 2 after every 10 blocks generated
 - [ ] Add consensus delay
@@ -37,7 +38,6 @@ When bad nodes have taken down, the blank position should affect consensus proce
 - [ ] Add P2P function
 - [ ] Add interactive interface
 - [ ] Output data required
-- [ ] Finished FCSW comparison algorithm 
 
 ## Credit 
 
