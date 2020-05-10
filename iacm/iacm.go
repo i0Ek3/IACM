@@ -1270,6 +1270,72 @@ func DCML() {
     waitingTime()
 }
 
+// comparison algorithm
+// original DPoS
+func ComparisonDPoS() {
+    // statistic round number
+    round++
+    
+    fmt.Print("\n---------Runing comparison algorithm DPoS...---------\n")
+    waitingTime()
+
+    // create common nodes then print them information
+    CreateNode()
+    waitingTime()
+   
+    // select candidate from common node which have more votes
+    fmt.Print("\n-------------Select candidate nodes...------------\n")
+    fmt.Println("\t\tinfo id votes\n")
+    waitingTime()
+    SelectCandidate()
+
+    // initial candidate node list
+    fmt.Print("\n----------Initializing candidate nodes...----------\n")
+    fmt.Println("\tinfo id votes auth d cl cv con bad good \n")
+    waitingTime()
+    InitCandidate()
+
+    // simulate the vote
+    fmt.Print("\n-----------------------Voting--------------------\n")
+    waitingTime()
+    Vote()
+    
+    // selection delegate from candidate
+    fmt.Print("\n-----------------Select delegate nodes-----------------\n")
+    fmt.Println("\tinfo id votes auth d cl cv con bad good \n")
+    waitingTime()
+    SelectDelegate()
+    fmt.Println("\n")
+    //fmt.Println(nodes)
+
+    // initial consensus
+    fmt.Print("\n---------------Initializing consensus...---------------\n")
+    waitingTime()
+    InitialDelegate()
+    
+    fmt.Print("\n------------Comparison algorithm DPoS over!---------------------\n")
+    waitingTime()
+}
+
+// FCSW
+func ComparisonFCSW() {
+    fmt.Print("\n---------Runing comparison algorithm FCSW...---------\n")
+    waitingTime()
+
+    // fusing machnism
+    // TODO:
+
+    // credit machnism
+    // TODO:
+
+    // standby witness machnism 
+    // TODO:
+    TimingAlternate()
+
+    fmt.Print("\n------------Comparison algorithm FCSW over!---------------------\n")
+    waitingTime()
+}
+
 // main function
 func main() {
 LOOP:
@@ -1358,9 +1424,22 @@ LOOP:
     // call dcml algorithm
     DCML()
 
+    // run the comparison algorith
+    fmt.Println("\n----------Would you like to run comparison algorithm?----------\n")
+    fmt.Println("Enter y or Y to run comparison algorithm, n or N to say googbye!")
+
+    fmt.Scanln(&input)
+    if input == "y" || input == "Y" {
+        ComparisonDPoS()
+        ComparisonFCSW()
+    } else {
+        fmt.Println("You will not run the comparsion algorithm.!")
+        return
+    }
+
     // run the next loop
     fmt.Println("\n---------------------------Next loop?----------------------------\n")
-    fmt.Println("Current consensus round have done, would you like to start next round? y to contine, n to stop:")
+    fmt.Println("Current consensus round have done, would you like to start next round? y to continue, n to stop:")
     
     // interaction in the end
     fmt.Scanln(&input)
