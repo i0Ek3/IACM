@@ -110,7 +110,7 @@ var (
     commonPool  = make([]D, delegateNum) // state table: store cl=2's nodes
     premiumPool = make([]D, delegateNum) // state table: store cl=1's nodes
     
-    round       = 0          // times of round 
+    round       = 0     // times of round 
     input       string       // the anwser to next loop
     blockchain  []Block      // the blockchain
     curCv       [delegateNum]float64  // current contribution value
@@ -163,7 +163,7 @@ func (node *Node) GenerateNewBlock(lastBlock Block, data string, addr string) Bl
 }
 
 // calculate the block hash
-func (block *Block) calHash()  {
+func (block *Block) calHash() {
     hashstr := strconv.Itoa(block.Height) + block.Timestamp + block.Prehash + block.Data + block.Address
     hash := sha256.Sum256([]byte(hashstr))
 	block.Hash = hex.EncodeToString(hash[:])
@@ -182,7 +182,7 @@ func CreateNode() {
         info := fmt.Sprintf("common node:") // node information
         id   := i       // node id number
         vote := rand.Intn(nodeNum)          // the number of vote
-        f    := ""    // format control
+        f    := ""      // format control
         nodePool[i] = Node{info, id, vote, f}
         fmt.Println("initializing...", nodePool[i])
         //fmt.Println("\n")
@@ -370,7 +370,7 @@ func InitialDelegate(number int) {
 
         delePool = append(delePool, D{Node{info, id, vote, f}, auth, d, cl, cv, con, un, bad, good, addr, fmm})
         delePool[i] = D{Node{info, id, vote, f}, auth, d, cl, cv, con, un, bad, good, addr, fmm}
-        fmt.Println("initialized to delegate", i, candPool[i])
+        fmt.Println("initialized to delegate", i, delePool[i])
     }
 }
 
@@ -388,8 +388,8 @@ func isBlockValid(newBlock, oldBlock Block) bool {
     fmt.Println("\n------------------Validating the block...--------------------\n")
     waitingTime()
     
-    // TODO: validate delegateNum delegate nodes
     for i := 0; i < delegateNum; i++ {
+        // TODO: validate delegateNum delegate nodes
         //
     }
     
@@ -483,6 +483,7 @@ func Process() {
 
     // initial consensus
     fmt.Print("\n---------------Initializing consensus...---------------\n")
+    fmt.Println("\tinfo id votes auth d cl cv con un bad good addr\n")
     waitingTime()
     InitialDelegate(NUMBER)
     
@@ -563,6 +564,7 @@ func UpdateCv(con, unvalid int) {
     // in other words, we needn't validate the block whether it valid or not
     // cause of con, if con > 0 that means the block must be validated and valid
     // else, while con = 0 that means block is unvalid
+    
     // FIXME: messed up here
     for i := 0; i < delegateNum; i++ {
         delta := -(float64)(delePool[i].Con)
@@ -570,20 +572,21 @@ func UpdateCv(con, unvalid int) {
         if oldBlock.Height+1 == newBlock.Height || newBlock.Prehash == oldBlock.Hash { 
             delePool[i].Con++
             if con > 0 {
-                //rewardTimes += con
-            } else if con == 0 {
-                punishTimes++
+                rewardTimes += (float64)(con)
             } else {
-                //
+                punishTimes++
             }
+
+            // add into blockchain
             blockchain = append(blockchain, newBlock)
             
+            // reward
             if con >= 3 {
                 delePool[i].Cv += rewardTimes * reward // reward cv
             }
             sum1 += rewardTimes * reward
 
-            // con = 0 means this delegate not product the block
+            // con = 0 means this delegate didn't product the block
             if con == 0 {
                 curCv[i] = delePool[i].Cv + punishTimes * punish
             } else {
@@ -1405,7 +1408,7 @@ func Consensus() {
         // validate the block then statistic block's coniunity
         // but in real blockchain, one block generated should have validated by six delegate, we just simulate it by one 
         //nodes := SelectDelegate()
-        
+       
         if isBlockValid(newBlock, blockchain[k]) {
             if k >= delegateNum {
                 k %= 10
@@ -1423,7 +1426,9 @@ func Consensus() {
         // FIXME: when we add UpdateCv/Cl() here, something looks so wired, while generated the block 3, rest of them generated are same and with cl/cv
         // but when we noted UpdateCv/Cl(), everything is ok except cv cannot update
         
-        //UpdateCv(nodes[k].Con, nodes[k].Unvalid)
+        // FIXME: contribution value explode while use UpdateCv() here
+        //UpdateCv(candPool[k].Con, candPool[k].Unvalid)
+        
         Upcv(candPool[k].Con)
         UpdateCl()
         fmt.Print("\n-----------Updating contibution value and contribution level...----------\n")

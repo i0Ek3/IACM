@@ -25,12 +25,12 @@ When bad nodes have taken down, the blank position should affect consensus proce
 - v0425: Finished basic function of IDTM.
 
 ## TODO
-  
+
 > If I have time I will fix follows issues and todos.
 
 - [x] Fix same block issue after 3 block generated
 - [x] Implement DCML algorithm
-- [x] Finished FCSW comparison algorithm 
+- [x] Finished FCSW comparison algorithm
 - [ ] Fix same Cv/Cl value of every delegate node
 - [ ] Start to block 2 after every 10 blocks generated
 - [ ] Add consensus delay
@@ -38,6 +38,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 - [ ] Add P2P function
 - [ ] Add interactive interface
 - [ ] Output data required
+- [ ] Bad nodes fails to simulate
 
 ## Credit 
 
