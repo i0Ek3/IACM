@@ -2,6 +2,13 @@
 
 IACM is an improved DPoS consensus implement by Go, which includes algorithm IDTM and DCML. Of course, all stuff here just simulation instead of real ones, so if you want to use it, please be careful and YOU OWN RISK. After all, this repo just for personal academic research, BE KNOWN!!!
 
+## Build & Run
+
+You can build and run this file in macOS/Windows/Linux platform with same command:
+
+- Build: $ go build iacm.go
+- Run:   $ go run iacm.go
+
 ## IDTM
 
 Main point:
