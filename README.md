@@ -51,5 +51,3 @@ When bad nodes have taken down, the blank position should affect consensus proce
 ## Credit 
 
 Big thanks to GitHub with open source code.
-
-ps: Freshbird write the F**king code, you can take a look then leave, good for you.
