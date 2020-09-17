@@ -23,13 +23,14 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## Update Log
 
-- v0510: Add and upgrade comparison algorithm.
-- v0509: Finished algorithm MGM but we got nothing about the data. 
-- v0508: Implement part of alternative strategies and LOF algorithm in DCML.
-- v0430: Messed up, more bugs on the way. >_<
-- v0429: Fix and make some bugs.
-- v0428: Modelize the code, fix some issues but not all.
-- v0425: Finished basic function of IDTM.
+- 20200917: Add error debug information partially.
+- 20200510: Add and upgrade comparison algorithm.
+- 20200509: Finished algorithm MGM but we got nothing about the data. 
+- 20200508: Implement part of alternative strategies and LOF algorithm in DCML.
+- 20200430: Messed up, more bugs on the way. 
+- 20200429: Fix and make some bugs.
+- 20200428: Modelize the code, fix some issues but not all.
+- 20200425: Finished basic function of IDTM.
 
 ## TODO
 
