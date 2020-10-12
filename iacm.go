@@ -1,5 +1,3 @@
-//  An improved DPoS consensus implement by Go,  which includes algorithm IDTM and DCML.
-
 package main
 
 import (
@@ -12,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	error "github.com/go-errors/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -97,11 +95,6 @@ type Block struct {
 	//delegate    *Node
 }
 
-// Error defines error information
-type Error struct {
-	err error
-}
-
 var (
 	nodePool = make([]Node, nodeNum)   // common node pool
 	candPool = make([]D, candidateNum) // candidate node pool
@@ -125,8 +118,6 @@ var (
 	//counter     [nodeNum/2]int          // for dcml algo use
 	//buffer      [nodeNum/2]int          // same as last
 	alterPool = make([]D, candidateNum)
-
-	Crash = errors.Errorf("Wrong here!")
 )
 
 // first block: genesis block
@@ -189,7 +180,6 @@ func CreateNode() error {
 		f := ""                             // format control
 		nodePool[i] = Node{info, id, vote, f}
 		fmt.Println("initializing...", nodePool[i])
-		//fmt.Println("\n")
 	}
 	return nil
 }
@@ -557,7 +547,7 @@ func Upcv(delePoolCon int) {
 		} else if delePoolCon >= 3 {
 			delePool[i].Cv += lambda * reward
 		} else {
-			fmt.Println("\nsomething wrong here!\n")
+			log.Warnf("\nsomething wrong here!\n")
 		}
 	}
 }
@@ -776,11 +766,11 @@ func Check(ch bool) bool {
 func getNotify() {
 	for i := 0; i < nodeNum; i++ {
 		if delePool[i].isDelete {
-			fmt.Println("\nThis node alread deleted!\n")
+			log.Warnf("\nThis node alread deleted!\n")
 		} else if delePool[i].isGood {
-			fmt.Println("\nThis node was good node, you can vote it more!\n")
+			log.Warnf("\nThis node was good node, you can vote it more!\n")
 		} else {
-			fmt.Println("\nVote it by your heart!\n")
+			log.Warnf("\nVote it by your heart!\n")
 		}
 	}
 }
@@ -922,13 +912,13 @@ func LOF() {
 	for i := 0; i < delegateNum; i++ {
 		if score[i] <= 1.0 {
 			normal[i] = score[i]
-			fmt.Println("\nThe data point is Ok, not like an anomaly!\n")
+			log.Warnf("\nThe data point is Ok, not like an anomaly!\n")
 		} else if score[i] > 1.0 && score[i] <= 1.3 {
 			normal[i] = score[i]
-			fmt.Println("\nIt seems that this point closer to others, not like an anomaly!\n")
+			log.Warnf("\nIt seems that this point closer to others, not like an anomaly!\n")
 		} else {
 			anomaly[i] = score[i]
-			fmt.Println("\nThis point far away other nodes, just like an anomaly!\n")
+			log.Warnf("\nThis point far away other nodes, just like an anomaly!\n")
 		}
 	}
 
@@ -1045,10 +1035,10 @@ func JudgeIt1D() {
 	prob := Probility1D()
 	for i := 0; i < candidateNum; i++ {
 		if prob[i] < epsilon1 {
-			fmt.Println("\nTHIS POINT IS ANOMALY!!!!\n")
+			log.Warnf("\nTHIS POINT IS ANOMALY!!!!\n")
 			waitingTime()
 		} else {
-			fmt.Println("\nTHIS POINT IS NORMAL!!!!\n")
+			log.Warnf("\nTHIS POINT IS NORMAL!!!!\n")
 			waitingTime()
 		}
 	}
@@ -1060,10 +1050,10 @@ func JudgeIt2D() {
 	for i := 0; i < candidateNum; i++ {
 		for j := 0; j < candidateNum; j++ {
 			if prob[i][j] < epsilon2 {
-				fmt.Println("\nTHIS POINT IS ANOMALY!!!!\n")
+				log.Warnf("\nTHIS POINT IS ANOMALY!!!!\n")
 				waitingTime()
 			} else {
-				fmt.Println("\nTHIS POINT IS NORMAL!!!!\n")
+				log.Warnf("\nTHIS POINT IS NORMAL!!!!\n")
 				waitingTime()
 			}
 		}
@@ -1123,7 +1113,7 @@ func TimingAlternate(number int) {
 			if AbnormalDetection(candPool[j]) {
 				alterPool[j] = candPool[j]
 			} else {
-				fmt.Println("\nAbnormal detection failed, AD next one!\n")
+				log.Warnf("\nAbnormal detection failed, AD next one!\n")
 			}
 		}
 	}
@@ -1185,10 +1175,10 @@ func alternateFullLoad() {
 			}
 		}
 	} else if cnt > alternateNum {
-		fmt.Println("\nThe buffer is full, please store qualified candidate nodes after nodes alternated in the buffer!\n")
+		log.Warnf("\nThe buffer is full, please store qualified candidate nodes after nodes alternated in the buffer!\n")
 		waitingTime()
 	} else {
-		fmt.Println("\nThe buffer need to fill, please going on...\n")
+		log.Warnf("\nThe buffer need to fill, please going on...\n")
 		waitingTime()
 	}
 }
@@ -1477,14 +1467,8 @@ func Consensus() {
 	DCML()
 }
 
-func Debug() error {
-	return errors.New(Crash)
-}
-
-func Error(err Error) {
-	if err != nil {
-		panic("Something wrong!")
-	}
+func Debug() {
+	log.Debugf("Something wrong here!")
 }
 
 // main function
@@ -1501,7 +1485,7 @@ LOOP:
 		ComparisonDPoS()
 		ComparisonFCSW()
 	} else {
-		fmt.Println("You will not run the comparsion algorithm.!")
+		log.Warnf("You will not run comparsion algorithm!")
 		return
 	}
 
@@ -1514,7 +1498,7 @@ LOOP:
 	if input == "y" || input == "Y" {
 		goto LOOP
 	} else {
-		fmt.Println("Consensus endup, see you next time!")
+		log.Infof("Consensus endup, see you next time!")
 		return
 	}
 }

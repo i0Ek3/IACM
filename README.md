@@ -6,8 +6,8 @@ IACM is an improved DPoS consensus implement by Go, which includes algorithm IDT
 
 You can build and run this file in macOS/Windows/Linux platform with same command:
 
-- Build: $ go build iacm.go
-- Run:   $ go run iacm.go
+- Build: `$ go build iacm.go`
+- Run:   `$ go run iacm.go`
 
 ## IDTM
 
@@ -23,6 +23,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## Update Log
 
+- 20201012: Support go mod and remove unuseful lines.
 - 20200917: Add error debug information partially.
 - 20200510: Add and upgrade comparison algorithm.
 - 20200509: Finished algorithm MGM but we got nothing about the data. 
