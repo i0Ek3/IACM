@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -12,6 +13,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
+
+var showErr = errors.New("somthing wrong here.")
 
 const (
 	nodeNum      = 101 // sum of nodes
@@ -1468,7 +1471,13 @@ func Consensus() {
 }
 
 func Debug() {
-	log.Debugf("Something wrong here!")
+	ShowErr()
+	log.Debugf("---> marked! <---")
+}
+
+// ShowErr shows the error msg
+func ShowErr() error {
+	return showErr
 }
 
 // main function

@@ -23,6 +23,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## Update Log
 
+- 20201025: Discard refactor cause of I cannot understand it yet, bye~
 - 20201012: Support go mod and remove unuseful lines.
 - 20200917: Add error debug information partially.
 - 20200510: Add and upgrade comparison algorithm.
