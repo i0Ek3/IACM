@@ -1,4 +1,4 @@
-# IACM
+# IACM with Refactor
 
 IACM is an improved DPoS consensus implement by Go, which includes algorithm IDTM and DCML. Of course, all stuff here just simulation instead of real ones, so if you want to use it, please be careful and YOU OWN RISK. After all, this repo just for personal academic research, BE KNOWN!!!
 
@@ -7,14 +7,16 @@ IACM is an improved DPoS consensus implement by Go, which includes algorithm IDT
 > (WIP), please check refactor branch.
 
 - fully use Go language features
-- add test file
+- add test file for every go file
 - modulize the code and depart the function
 - structurize the project with api/cmd etc.
+- support log analysis
 - fully use package manage tool: go mod
 - refactor the code and remove the unused code
 - probably add new features for IACM
 - use middleware: redis/rpc etc.
 - rich documentation with godoc
+- perfect the style of the code and annotation
 
 ## Build & Run
 
@@ -37,6 +39,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## Update Log
 
+- 20210508: Begin to refactor, split the code without any test, just split.
 - 20201025: Discard refactor cause of I cannot understand it yet, bye~
 - 20201012: Support go mod and remove unuseful lines.
 - 20200917: Add error debug information partially.
