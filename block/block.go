@@ -1,6 +1,11 @@
-package main
+package block
 
-import "fmt"
+import (
+    "fmt"
+    "time"
+    "crypto/sha256"
+    "encoding/hex"
+)
 
 // the struct of Block
 type Block struct {

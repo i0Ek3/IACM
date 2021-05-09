@@ -1,4 +1,4 @@
-package main
+package dcml
 
 import "fmt"
 

@@ -1,18 +1,21 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"errors"
 	"fmt"
-	"math"
-	"math/rand"
-	"sort"
-	"strconv"
-	"time"
+    
+    // TODO: undefined package import
+    "block"
+    "node"
+    "process"
+    "dcml"
+    "utils"
 
 	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+    fmt.Println("Usage: go run main.go")
+}
 
 func main() {
 LOOP:

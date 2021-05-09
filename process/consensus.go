@@ -1,6 +1,9 @@
-package main
+package process
 
-import "fmt"
+import (
+    "fmt"
+    "time"
+)
 
 // runing consensus
 func Consensus() {

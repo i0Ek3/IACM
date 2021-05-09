@@ -25,6 +25,8 @@ You can build and run this file in macOS/Windows/Linux platform with same comman
 - Build: `$ go build iacm.go`
 - Run:   `$ go run iacm.go`
 
+or run `make` directly.
+
 ## IDTM
 
 Main point:
@@ -39,6 +41,7 @@ When bad nodes have taken down, the blank position should affect consensus proce
 
 ## Update Log
 
+- 20210509: Structurize the project, continue to split the code.
 - 20210508: Begin to refactor, split the code without any test, just split.
 - 20201025: Discard refactor cause of I cannot understand it yet, bye~
 - 20201012: Support go mod and remove unuseful lines.

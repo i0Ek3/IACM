@@ -1,6 +1,10 @@
-package main
+package node
 
-import "fmt"
+import (
+    "fmt"
+    "time"
+    "math/rand"
+)
 
 // the struct of delegate node
 type Delegate struct {

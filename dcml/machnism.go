@@ -1,4 +1,6 @@
-package main
+package dcml
+
+import "math/rand"
 
 // fuse machnism
 func FuseMachnism() float64 {

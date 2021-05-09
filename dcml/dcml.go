@@ -1,8 +1,11 @@
-package main
+package dcml
 
 import (
     "fmt"
-    "log"
+    "math"
+    "math/rand"
+
+    log "github.com/sirupsen/logrus"
 )
 
 // contribution machnism

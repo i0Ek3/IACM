@@ -1,8 +1,10 @@
-package main
+package process
 
 import (
     "fmt"
-    "log"
+    "math"
+
+    log "github.com/sirupsen/logrus"
 )
 
 // yet another update contribution value version

@@ -1,10 +1,10 @@
-package main
+package utils
 
 import (
     "fmt"
     "time"
-    "rand"
-    "log"
+
+    log "github.com/sirupsen/logrus"
 )
 
 // time simulation

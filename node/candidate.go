@@ -1,6 +1,11 @@
-package main
+package node
 
-import "fmt"
+import (
+    "fmt"
+    "time"
+    "math"
+    "math/rand"
+)
 
 // the struct of candidate node
 type Candidate struct {
