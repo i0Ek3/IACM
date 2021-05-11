@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-    fmt.Println("Usage: go run main.go")
+    fmt.Println("Usage: make ; ./iacm")
 }
 
 func main() {

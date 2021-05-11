@@ -12,7 +12,7 @@ then
 else
     if [ $2 == "init" ] 
     then
-        go mod init $2
+        go mod init $1
     else
         go mod tidy 
     fi
