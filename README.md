@@ -2,6 +2,17 @@
 
 IACM is an improved DPoS consensus implement by Go, which includes algorithm IDTM and DCML. Of course, all stuff here just simulation instead of real ones, so if you want to use it, please be careful and YOU OWN RISK. After all, this repo just for personal academic research, BE KNOWN!!!
 
+## Getting Started
+
+### Build & Run
+
+You can build and run this file in macOS/Windows/Linux platform with same command:
+
+- Build: `$ go build iacm.go`
+- Run:   `$ go run iacm.go`
+
+or run `make` directly.
+
 ## Refactor Plan
 
 > (WIP), please check refactor branch.
@@ -18,28 +29,21 @@ IACM is an improved DPoS consensus implement by Go, which includes algorithm IDT
 - rich documentation with godoc
 - perfect the style of the code and annotation
 
-## Build & Run
+## Algorithm
 
-You can build and run this file in macOS/Windows/Linux platform with same command:
-
-- Build: `$ go build iacm.go`
-- Run:   `$ go run iacm.go`
-
-or run `make` directly.
-
-## IDTM
+### IDTM
 
 Main point:
 
 Node authencation and support degree calculation, then select the delegate nodes. While consensus start, use contribution meachism to update contirbution value and it's level, take measures to reward and punish node. 
 
-## DCML
+### DCML
 
 Main point:
 
 When bad nodes have taken down, the blank position should affect consensus process, so we use some methods such as candidate monitor and machine learning algorithms to detect latent bad nodes and candidate proper nodes into consensus process to consensus well.
 
-## Update Log
+## Changelog
 
 - 20210509: Structurize the project, continue to split the code.
 - 20210508: Begin to refactor, split the code without any test, just split.
@@ -70,6 +74,14 @@ When bad nodes have taken down, the blank position should affect consensus proce
 - [ ] Output data required
 - [ ] Bad nodes fails to simulate
 
+## Contributing
+
+If you'd like to contribute, please fork the repository and make changes as you'd like. Pull requests and Issues are also welcome.
+
 ## Credit 
 
 Big thanks to GitHub with open source code.
+
+## License 
+
+MIT.
