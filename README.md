@@ -1,5 +1,7 @@
 # IACM with Refactor
 
+> [WIP].
+
 IACM is an improved DPoS consensus implement by Go, which includes algorithm IDTM and DCML. Of course, all stuff here just simulation instead of real ones, so if you want to use it, please be careful and YOU OWN RISK. After all, this repo just for personal academic research, BE KNOWN!!!
 
 ## Getting Started
